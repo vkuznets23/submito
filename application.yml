@@ -1,0 +1,16 @@
+# This file is used to configure the application.
+# It is used to configure the database, security, and other settings.
+server:
+  port: 8080
+
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  security:
+    user:
+      name: ${SECURITY_USER_NAME}
+      password: ${SECURITY_USER_PASSWORD}
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}

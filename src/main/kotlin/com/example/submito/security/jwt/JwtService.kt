@@ -14,7 +14,7 @@ class JwtService {
     // @Value - injects the value of the property from application.yml into the field
     // private lateinit var - means that the field is initialized by Spring
     @Value("\${spring.jwt.secret}") private lateinit var secret: String
-    @Value("\${jwt.expiration}") private var expiration: Long = 0
+    @Value("\${spring.jwt.expiration}") private var expiration: Long = 0
 
     // make hashed key from secret string
     private fun getSigningKey(): SecretKey {

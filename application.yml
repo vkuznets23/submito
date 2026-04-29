@@ -6,6 +6,9 @@ server:
 spring:
   config:
     import: optional:file:.env[.properties]
+  jpa:
+    hibernate:
+      ddl-auto: update
   security:
     user:
       name: ${SECURITY_USER_NAME}

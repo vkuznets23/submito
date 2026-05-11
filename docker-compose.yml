@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: submito-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-submito}
+      POSTGRES_USER: ${POSTGRES_USER:-submito}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-submito}
+    ports:
+      - "5433:5432"
+    volumes:
+      - submito_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-submito} -d ${POSTGRES_DB:-submito}",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: submito-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - submito_redisdata:/data
+
+volumes:
+  submito_pgdata:
+  submito_redisdata:

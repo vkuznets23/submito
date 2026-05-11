@@ -1,4 +1,4 @@
-package com.example.submito.config
+package com.example.submito.security
 
 import com.example.submito.security.jwt.JwtAuthFilter
 import org.springframework.context.annotation.Bean
@@ -32,6 +32,7 @@ class SecurityConfig {
                 .authorizeHttpRequests {
                     it.requestMatchers("/auth/**").permitAll()
                     it.requestMatchers("/health").permitAll()
+                    it.requestMatchers("/users", "/users/**").permitAll() // DELETE
                     it.anyRequest().authenticated()
                 }
                 // add JWT filter before UsernamePasswordAuthenticationFilter

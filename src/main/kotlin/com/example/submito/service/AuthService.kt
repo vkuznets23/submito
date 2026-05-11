@@ -31,7 +31,7 @@ class AuthService(
                         passwordHash = encodedPassword,
                         role = request.role
                 )
-        // save usee to db
+        // save user to db
         val savedUser = userRepository.save(user)
         // generate token
         val token = jwtService.generateToken(savedUser)

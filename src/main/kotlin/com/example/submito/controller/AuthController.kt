@@ -14,8 +14,9 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/auth")
 class AuthController(private val authService: AuthService) {
+
     @PostMapping("/register")
-    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.CREATED) // 201 Created
     fun register(@Valid @RequestBody request: RegisterRequest): AuthResponse {
         return authService.register(request)
     }

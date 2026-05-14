@@ -1,6 +1,6 @@
 package com.example.submito.dto
 
-import com.example.submito.entity.Role
+import com.example.submito.entity.RegisterRole
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Size
 data class RegisterRequest(
         @field:NotBlank(message = "Name is required")
         @field:Size(min = 2, message = "Name must be at least 2 characters")
+        @field:Size(max = 50, message = "Name must be at most 50 characters")
         val name: String,
 
         @field:NotBlank(message = "Email is required")
@@ -18,6 +19,7 @@ data class RegisterRequest(
 
         @field:NotBlank(message = "Password is required")
         @field:Size(min = 8, message = "Password must be at least 8 characters")
+        @field:Size(max = 72, message = "Password must be at most 72 characters")
         @field:Pattern(
                 regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
                 message =
@@ -25,5 +27,5 @@ data class RegisterRequest(
         )
         val password: String,
         
-        @field:NotNull(message = "Role is required") val role: Role = Role.STUDENT
+        @field:NotNull(message = "Role is required") val role: RegisterRole = RegisterRole.STUDENT
 ) {}

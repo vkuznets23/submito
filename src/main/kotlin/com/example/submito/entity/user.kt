@@ -22,7 +22,7 @@ import org.hibernate.annotations.UpdateTimestamp
 // updatedAt: LocalDateTime = LocalDateTime.now(),
 @Entity // JPA annotation to make this class a JPA entity
 @Table(name = "users") // table name in the db
-data class User(
+class User(
         @Id @GeneratedValue(strategy = GenerationType.IDENTITY) val id: Long? = null,
         @Column(nullable = false) val name: String,
         @Enumerated(EnumType.STRING) @Column(nullable = false) val role: Role = Role.STUDENT,

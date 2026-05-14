@@ -54,28 +54,28 @@ Backend service built with Kotlin + Spring Boot (JPA, Spring Security, JWT). Pos
 
 ## Useful commands
 
-| Action                                | Command                                                   |
-| ------------------------------------- | --------------------------------------------------------- |
-| Stop containers                       | `docker compose down`                                     |
-| Reset DB data (remove volume)         | `docker compose down -v`                                  |
-| Tail Postgres logs                    | `docker compose logs -f postgres`                         |
-| Open psql inside the container        | `docker compose exec postgres psql -U submito -d submito` |
+| Action                         | Command                                                   |
+| ------------------------------ | --------------------------------------------------------- |
+| Stop containers                | `docker compose down`                                     |
+| Reset DB data (remove volume)  | `docker compose down -v`                                  |
+| Tail Postgres logs             | `docker compose logs -f postgres`                         |
+| Open psql inside the container | `docker compose exec postgres psql -U submito -d submito` |
 
 ## Environment variables
 
 All settings live in `.env` (which is gitignored). The committed template is `.env.example`.
 
-| Variable                                                  | Purpose                                          |
-| --------------------------------------------------------- | ------------------------------------------------ |
-| `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`  | Spring connection to Postgres                    |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`       | Postgres container initialization                |
-| `SECURITY_USER_NAME`, `SECURITY_USER_PASSWORD`            | Default Spring Security user                     |
-| `JWT_SECRET`, `JWT_EXPIRATION`                            | JWT signing key and token lifetime               |
+| Variable                                                 | Purpose                            |
+| -------------------------------------------------------- | ---------------------------------- |
+| `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` | Spring connection to Postgres      |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`      | Postgres container initialization  |
+| `SECURITY_USER_NAME`, `SECURITY_USER_PASSWORD`           | Default Spring Security user       |
+| `JWT_SECRET`, `JWT_EXPIRATION`                           | JWT signing key and token lifetime |
 
 ## Endpoints (current)
 
-| Method | Path             | Description                          | Auth                       |
-| ------ | ---------------- | ------------------------------------ | -------------------------- |
-| `GET`  | `/health`        | health check                         | —                          |
-| `POST` | `/auth/register` | register a user, returns a JWT       | —                          |
-| `GET`  | `/users`         | list all users                       | — _(temporarily public)_   |
+| Method | Path             | Description                    | Auth                     |
+| ------ | ---------------- | ------------------------------ | ------------------------ |
+| `GET`  | `/health`        | health check                   | —                        |
+| `POST` | `/auth/register` | register a user, returns a JWT | —                        |
+| `GET`  | `/users`         | list all users                 | — _(temporarily public)_ |

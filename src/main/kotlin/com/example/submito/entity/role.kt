@@ -5,3 +5,8 @@ enum class Role {
     TEACHER,
     ADMIN,
 }
+
+enum class RegisterRole {
+    STUDENT,
+    TEACHER,
+}

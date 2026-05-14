@@ -3,7 +3,10 @@ package com.example.submito.service
 import com.example.submito.dto.AuthResponse
 import com.example.submito.dto.RegisterRequest
 import com.example.submito.dto.UserResponse
+import com.example.submito.entity.Role
+import com.example.submito.entity.RegisterRole
 import com.example.submito.entity.User
+import com.example.submito.exception.EmailAlreadyExistsException
 import com.example.submito.repository.UserRepository
 import com.example.submito.security.jwt.JwtService
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -17,19 +20,25 @@ class AuthService(
 ) {
     fun register(request: RegisterRequest): AuthResponse {
         // check if email is already in use or not
-        if (userRepository.existsByEmail(request.email)) {
-            throw RuntimeException("Email ${request.email} already exists")
+        val normalizedEmail = request.email.lowercase().trim()
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw EmailAlreadyExistsException(normalizedEmail)
         }
         val encodedPassword =
                 passwordEncoder.encode(request.password)
                         ?: throw IllegalStateException("Password encoding failed")
+
+        val userRole = when (request.role) {
+            RegisterRole.STUDENT -> Role.STUDENT
+            RegisterRole.TEACHER -> Role.TEACHER
+        }
         // create new user
         val user =
                 User(
                         name = request.name,
-                        email = request.email,
+                        email = normalizedEmail,
                         passwordHash = encodedPassword,
-                        role = request.role
+                        role = userRole
                 )
         // save user to db
         val savedUser = userRepository.save(user)

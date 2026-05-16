@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.dao.DataIntegrityViolationException
 
 
 @RestControllerAdvice
@@ -26,11 +27,39 @@ class GlobalExceptionHandler {
                         ErrorResponse(
                                 status = status.value(),
                                 error = status.reasonPhrase,
-                                message = "Email ${exception.email} already exists",
+                                message = "Email already exists",
                                 path = request.servletPath,
                                 timestamp = Instant.now()
                         )
                 )
+    }
+
+    // for race condition error if two requests are sent at the same time
+    @ExceptionHandler(DataIntegrityViolationException::class)
+    fun handleDataIntegrityViolation(
+        exception: DataIntegrityViolationException,
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.CONFLICT
+        val rootMessage = exception.mostSpecificCause.message?.lowercase() ?: ""
+
+        // PostgreSQL unique violation: SQLState 23505, often "duplicate key" / "users_email"
+        val isDuplicateEmail = rootMessage.contains("duplicate") &&
+        (rootMessage.contains("email") || rootMessage.contains("users"))
+
+        if (!isDuplicateEmail) {
+            throw exception
+        }
+
+        return ResponseEntity
+            .status(status)
+            .body(ErrorResponse(
+                status = status.value(),
+                error = status.reasonPhrase,
+                message = "Email already exists",
+                path = request.servletPath,
+                timestamp = Instant.now()
+            ))
     }
 
     // should it return all validation errors or just the first one?

@@ -11,6 +11,7 @@ import com.example.submito.repository.UserRepository
 import com.example.submito.security.jwt.JwtService
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class AuthService(
@@ -18,6 +19,7 @@ class AuthService(
         private val passwordEncoder: PasswordEncoder,
         private val jwtService: JwtService
 ) {
+    @Transactional // if something fails mid-method, DB changes can roll back
     fun register(request: RegisterRequest): AuthResponse {
         // check if email is already in use or not
         val normalizedEmail = request.email.lowercase().trim()

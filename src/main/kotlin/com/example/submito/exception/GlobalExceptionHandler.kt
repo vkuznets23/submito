@@ -103,4 +103,21 @@ class GlobalExceptionHandler {
                 )
             )
     }
+
+    @ExceptionHandler(InvalidCredentialsException::class)
+    fun handleInvalidCredentialsException(
+        request: HttpServletRequest
+    ): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.UNAUTHORIZED
+
+        return ResponseEntity
+            .status(status)
+            .body(ErrorResponse(
+                status = status.value(),
+                error = status.reasonPhrase,
+                message = "Invalid credentials",
+                path = request.servletPath,
+                timestamp = Instant.now()
+            ))
+    }
 }

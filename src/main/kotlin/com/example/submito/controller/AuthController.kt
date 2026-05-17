@@ -2,6 +2,7 @@ package com.example.submito.controller
 
 import com.example.submito.dto.AuthResponse
 import com.example.submito.dto.RegisterRequest
+import com.example.submito.dto.LoginRequest
 import com.example.submito.service.AuthService
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
@@ -19,5 +20,10 @@ class AuthController(private val authService: AuthService) {
     @ResponseStatus(HttpStatus.CREATED) // 201 Created
     fun register(@Valid @RequestBody request: RegisterRequest): AuthResponse {
         return authService.register(request)
+    }
+
+    @PostMapping("/login")
+    fun login(@Valid @RequestBody request: LoginRequest): AuthResponse {
+        return authService.login(request)
     }
 }

@@ -2,11 +2,13 @@ package com.example.submito.service
 
 import com.example.submito.dto.AuthResponse
 import com.example.submito.dto.RegisterRequest
+import com.example.submito.dto.LoginRequest
 import com.example.submito.dto.UserResponse
 import com.example.submito.entity.Role
 import com.example.submito.entity.RegisterRole
 import com.example.submito.entity.User
 import com.example.submito.exception.EmailAlreadyExistsException
+import com.example.submito.exception.InvalidCredentialsException
 import com.example.submito.repository.UserRepository
 import com.example.submito.security.jwt.JwtService
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -56,6 +58,27 @@ class AuthService(
                                 name = savedUser.name,
                                 email = savedUser.email,
                                 role = savedUser.role
+                        )
+        )
+    }
+
+    fun login(request: LoginRequest): AuthResponse {
+        val normalizedEmail = request.email.lowercase().trim()
+        val user = userRepository.findByEmail(normalizedEmail) ?: throw InvalidCredentialsException()
+        if (!passwordEncoder.matches(request.password, user.passwordHash)) {
+            throw InvalidCredentialsException()
+        }
+
+        val token = jwtService.generateToken(user)
+        return AuthResponse(
+                accessToken = token,
+                tokenType = "Bearer",
+                user =
+                        UserResponse(
+                                id = user.id!!,
+                                name = user.name,
+                                email = user.email,
+                                role = user.role
                         )
         )
     }

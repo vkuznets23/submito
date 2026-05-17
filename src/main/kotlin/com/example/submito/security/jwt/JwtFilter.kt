@@ -32,12 +32,10 @@ class JwtAuthFilter(
             return
         }
         val email = jwtService.extractEmail(token)
-        val user =
-                userRepository.findByEmail(email).orElse(null)
-                        ?: run {
-                            filterChain.doFilter(request, response)
-                            return
-                        }
+        val user = userRepository.findByEmail(email) ?: run {
+            filterChain.doFilter(request, response)
+            return
+        }
         val authorities = listOf(SimpleGrantedAuthority("ROLE_${user.role.name}"))
         val auth = UsernamePasswordAuthenticationToken(user, null, authorities)
         SecurityContextHolder.getContext().authentication = auth

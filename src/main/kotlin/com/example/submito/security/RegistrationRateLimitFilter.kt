@@ -14,50 +14,62 @@ import tools.jackson.databind.json.JsonMapper
 
 
 @Component
-class RegistrationRateLimitFilter(
+class AuthRateLimitFilter(
     private val jsonMapper: JsonMapper
 ) : OncePerRequestFilter() {
 
     // e.g. 5 registration attempts per IP per 15 minutes
-    private val maxRequests = 5
+    private val registerMax = 5
+    private val loginMax = 10
     private val windowSeconds = 15 * 60L
 
-    // IP -> list of request timestamps (milliseconds)
-    private val requestsByIp = ConcurrentHashMap<String, MutableList<Long>>()
+    private val registerByIp = ConcurrentHashMap<String, MutableList<Long>>()
+    private val loginByIp = ConcurrentHashMap<String, MutableList<Long>>()
 
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         filterChain: FilterChain
     ) {
-        // Only limit registration
-        if (request.method != "POST" || !request.requestURI.endsWith("/auth/register")) {
+        val isRegister = request.method == "POST" && request.requestURI.endsWith("/auth/register")
+        val isLogin = request.method == "POST" && request.requestURI.endsWith("/auth/login")
+
+        if (!isRegister && !isLogin) {
             filterChain.doFilter(request, response)
             return
         }
 
         val clientIp = resolveClientIp(request)
-        if (isRateLimited(clientIp)) {
-            writeTooManyRequests(response, request.servletPath)
-            return
+        if (isRegister) {
+            if (isRateLimited(clientIp, registerByIp, registerMax)) {
+                writeTooManyRequests(response, request.servletPath)
+                return
+            }
+        } else if (isLogin) {
+            if (isRateLimited(clientIp, loginByIp, loginMax)) {
+                writeTooManyRequests(response, request.servletPath)
+                return
+            }
         }
 
         filterChain.doFilter(request, response)
     }
 
-    private fun isRateLimited(clientIp: String): Boolean {
+    private fun isRateLimited(
+    clientIp: String,
+    store: ConcurrentHashMap<String, MutableList<Long>>,
+    maxRequests: Int
+    ): Boolean {
         val now = System.currentTimeMillis()
         val windowStart = now - windowSeconds * 1000
 
-        val timestamps = requestsByIp.computeIfAbsent(clientIp) { mutableListOf() }
+        val timestamps = store.computeIfAbsent(clientIp) { mutableListOf() }
 
         synchronized(timestamps) {
             timestamps.removeIf { it < windowStart }
-
             if (timestamps.size >= maxRequests) {
                 return true
             }
-
             timestamps.add(now)
             return false
         }
@@ -74,7 +86,7 @@ class RegistrationRateLimitFilter(
         val body = ErrorResponse(
             status = status.value(),
             error = status.reasonPhrase,
-            message = "Too many registration attempts. Please try again later.",
+            message = "Too many attempts. Please try again later.",
             path = path,
             timestamp = Instant.now()
         )

@@ -1,7 +1,7 @@
 package com.example.submito.security
 
 import com.example.submito.security.jwt.JwtAuthFilter
-import com.example.submito.security.RegistrationRateLimitFilter
+import com.example.submito.security.AuthRateLimitFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -25,7 +25,7 @@ class SecurityConfig {
     fun securityFilterChain(
         http: HttpSecurity, 
         jwtAuthFilter: JwtAuthFilter, 
-        registrationRateLimitFilter: RegistrationRateLimitFilter
+        authRateLimitFilter: AuthRateLimitFilter
     ): SecurityFilterChain {
         http
                 .csrf { it.disable() } //  disable CSRF for REST API
@@ -42,7 +42,7 @@ class SecurityConfig {
                 }
                 // add JWT filter before UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter::class.java)
-                .addFilterBefore(registrationRateLimitFilter, JwtAuthFilter::class.java)
+                .addFilterBefore(authRateLimitFilter, JwtAuthFilter::class.java)
 
 
         return http.build()

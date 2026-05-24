@@ -1,6 +1,6 @@
 # Submito
 
-Backend service built with Kotlin and Spring Boot (JPA, Spring Security, JWT). PostgreSQL is the primary data store and runs locally via Docker Compose.
+Backend service built with Kotlin and Spring Boot (JPA, Spring Security, JWT). PostgreSQL is the primary data store. Infrastructure runs via Docker Compose; the API can run on the host (development) or inside Docker (full stack).
 
 ## Tech stack
 
@@ -8,74 +8,198 @@ Backend service built with Kotlin and Spring Boot (JPA, Spring Security, JWT). P
 - Spring Boot 4 (web-mvc, security, data-jpa, validation)
 - PostgreSQL 16 (Docker)
 - Redis 7 (Docker; dependency present, rate limiting is in-memory for now)
-- Gradle (wrapper included in the repo)
-- `kotlin("plugin.jpa")` for JPA entity support
+- Gradle (wrapper included)
+- Docker + Docker Compose (`Dockerfile` multi-stage build for the app)
 
 ## Requirements
 
 - [Docker](https://www.docker.com/) + Docker Compose
-- JDK 24
-- Free ports: `5433` (Postgres), `6379` (Redis), `8080` (app)
+- JDK 24 (only for local `./gradlew bootRun`)
+- Free ports: **5433** (Postgres on host), **6379** (Redis), **8080** (API)
 
-## Quick start
+## One-time setup
 
-1. Clone the repository:
+1. Clone and enter the project:
 
    ```bash
    git clone <repo-url>
    cd Submito
    ```
 
-2. Copy the environment template:
+2. Create `.env` from the template:
 
    ```bash
    cp .env.example .env
    ```
 
-   Change `JWT_SECRET` to a long random string before running locally.
+3. Edit `.env`: set `JWT_SECRET` to a long random string (not the placeholder).
 
-3. Start Postgres and Redis:
+Configuration lives in `src/main/resources/application.yml` (used by both `bootRun` and the Docker image).
 
-   ```bash
-   docker compose up -d
-   ```
+---
 
-4. Run the application:
+## How to run
 
-   ```bash
-   ./gradlew bootRun
-   ```
+| Mode              | App                        | Postgres / Redis     | Best for                        |
+| ----------------- | -------------------------- | -------------------- | ------------------------------- |
+| **Full stack**    | Docker (`app`)             | Docker               | One command, CI-like check      |
+| **Development**   | Host (`./gradlew bootRun`) | Docker only          | Daily coding (faster iteration) |
+| **Services only** | Not started                | Docker (one or both) | DB tools or custom app start    |
 
-5. Check health:
+**Database URL depends on where the app runs:**
 
-   ```bash
-   curl http://localhost:8080/health
-   ```
+| App runs on            | `DATABASE_URL`                                                          |
+| ---------------------- | ----------------------------------------------------------------------- |
+| Host (`bootRun`)       | `jdbc:postgresql://localhost:5433/submito` (from `.env`)                |
+| Docker (`app` service) | `jdbc:postgresql://postgres:5432/submito` (set in `docker-compose.yml`) |
 
-   Expected: `Everything is OK`
+Postgres data is stored in the Docker volume `submito_pgdata`. `docker compose down` keeps data; `docker compose down -v` wipes it.
 
-## Useful commands
+---
 
-| Action                   | Command                                                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------------------------------- |
-| Stop containers          | `docker compose down`                                                                                   |
-| Reset DB (delete volume) | `docker compose down -v`                                                                                |
-| Postgres logs            | `docker compose logs -f postgres`                                                                       |
-| psql in container        | `docker compose exec postgres psql -U submito -d submito`                                               |
-| List users in DB         | `docker compose exec postgres psql -U submito -d submito -c "SELECT id, name, email, role FROM users;"` |
+### Full stack (app + Postgres + Redis)
+
+Builds the app image and starts all services. Postgres must pass its health check before `app` starts.
+
+```bash
+docker compose up --build
+```
+
+Background:
+
+```bash
+docker compose up --build -d
+```
+
+Check:
+
+```bash
+curl http://localhost:8080/health
+```
+
+Expected: `Everything is OK`
+
+Stop (containers removed, volumes kept):
+
+```bash
+docker compose down
+```
+
+**After backend code changes**, rebuild and restart only the app:
+
+```bash
+docker compose up --build app
+```
+
+Postgres and Redis do not need a rebuild when only Kotlin sources change.
+
+---
+
+### Development mode (recommended while coding)
+
+Run infrastructure in Docker; run Spring Boot on your machine for faster feedback.
+
+**Terminal 1 — Postgres + Redis:**
+
+```bash
+docker compose up -d postgres redis
+```
+
+**Terminal 2 — application:**
+
+```bash
+./gradlew bootRun
+```
+
+Ensure `.env` contains:
+
+```env
+DATABASE_URL=jdbc:postgresql://localhost:5433/submito
+```
+
+Check:
+
+```bash
+curl http://localhost:8080/health
+```
+
+Stop infrastructure:
+
+```bash
+docker compose down
+```
+
+---
+
+### Run services separately
+
+**Postgres only:**
+
+```bash
+docker compose up -d postgres
+```
+
+**Redis only:**
+
+```bash
+docker compose up -d redis
+```
+
+**App only** (starts Postgres via `depends_on`; build required first):
+
+```bash
+docker compose up --build app
+```
+
+**App on host** (with Postgres already up):
+
+```bash
+./gradlew bootRun
+```
+
+---
+
+## Docker reference
+
+| Action                        | Command                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Full stack (foreground)       | `docker compose up --build`                                                                             |
+| Full stack (background)       | `docker compose up --build -d`                                                                          |
+| Dev: DB + Redis only          | `docker compose up -d postgres redis`                                                                   |
+| Rebuild app after code change | `docker compose up --build app`                                                                         |
+| Stop containers               | `docker compose down`                                                                                   |
+| Stop and delete DB/Redis data | `docker compose down -v`                                                                                |
+| App logs                      | `docker compose logs -f app`                                                                            |
+| Postgres logs                 | `docker compose logs -f postgres`                                                                       |
+| psql in Postgres container    | `docker compose exec postgres psql -U submito -d submito`                                               |
+| List users                    | `docker compose exec postgres psql -U submito -d submito -c "SELECT id, name, email, role FROM users;"` |
+
+**Compose services:**
+
+| Service    | Image / build              | Host port       | Notes                                |
+| ---------- | -------------------------- | --------------- | ------------------------------------ |
+| `postgres` | `postgres:16`              | `5433` → `5432` | Volume `submito_pgdata`, healthcheck |
+| `redis`    | `redis:7-alpine`           | `6379`          | Volume `submito_redisdata`           |
+| `app`      | `Dockerfile` (multi-stage) | `8080`          | Waits for healthy Postgres           |
+
+The `Dockerfile` builds a fat JAR with Gradle inside an `eclipse-temurin:24-jdk` stage and runs it on `eclipse-temurin:24-jre`.
+
+---
 
 ## Environment variables
 
 Settings live in `.env` (gitignored). Template: `.env.example`.
 
-| Variable                                                 | Purpose                                 |
-| -------------------------------------------------------- | --------------------------------------- |
-| `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` | Spring → Postgres                       |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`      | Postgres container init                 |
-| `JWT_SECRET`, `JWT_EXPIRATION`                           | JWT signing and lifetime                |
-| `SECURITY_USER_NAME`, `SECURITY_USER_PASSWORD`           | Default Spring Security user (dev only) |
+| Variable                                                 | Purpose                                            |
+| -------------------------------------------------------- | -------------------------------------------------- |
+| `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` | Spring → Postgres (`localhost:5433` for `bootRun`) |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`      | Postgres container init                            |
+| `JWT_SECRET`, `JWT_EXPIRATION`                           | JWT signing and lifetime                           |
+| `SECURITY_USER_NAME`, `SECURITY_USER_PASSWORD`           | Default Spring Security user (dev only)            |
 
-Local Postgres uses host port **5433**.
+For the `app` service, `docker-compose.yml` overrides `DATABASE_URL` to use the hostname `postgres` on the Docker network.
+
+---
 
 ## API endpoints
 
@@ -127,12 +251,10 @@ Rate limit exceeded: **429 Too Many Requests** (see below).
 ### Example: register then login
 
 ```bash
-# Register
 curl -i -X POST http://localhost:8080/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name":"Viktoriia","email":"viktoriia@mail.com","password":"12345abAA!","role":"STUDENT"}'
 
-# Login
 curl -i -X POST http://localhost:8080/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"viktoriia@mail.com","password":"12345abAA!"}'
@@ -147,16 +269,20 @@ curl http://localhost:8080/users \
   -H "Authorization: Bearer <accessToken>"
 ```
 
+---
+
 ## Rate limiting
 
 `AuthRateLimitFilter` limits requests per client IP (in-memory):
 
-| Endpoint              | Limit                      |
-| --------------------- | -------------------------- |
-| `POST /auth/register` | 5 requests per 15 minutes  |
-| `POST /auth/login`    | 10 requests per 15 minutes |
+| Endpoint              | Limit                    |
+| --------------------- | ------------------------ |
+| `POST /auth/register` | 5 requests / 15 minutes  |
+| `POST /auth/login`    | 10 requests / 15 minutes |
 
-Counters reset on app restart. For production with multiple instances, use Redis-backed rate limiting.
+Counters reset on app restart. For multiple instances in production, use Redis-backed rate limiting.
+
+---
 
 ## Error handling
 
@@ -172,13 +298,17 @@ Errors are returned as JSON (`ErrorResponse`: `status`, `error`, `message`, `pat
 
 Custom exceptions: `EmailAlreadyExistsException`, `InvalidCredentialsException`, plus handlers for validation and `DataIntegrityViolationException` (race on duplicate email).
 
+---
+
 ## Security notes
 
 - Passwords are stored as **BCrypt** hashes, never plain text.
 - Registration accepts only `RegisterRole` (`STUDENT`, `TEACHER`); `Role.ADMIN` exists in the DB but cannot be chosen via public register.
 - Email is normalized (`lowercase().trim()`) before save and lookup.
 
-## Project structure (main packages)
+---
+
+## Project structure
 
 ```
 com.example.submito

@@ -30,6 +30,26 @@ services:
     volumes:
       - submito_redisdata:/data
 
+  app:
+    build: .
+    container_name: submito-app
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/submito
+      DATABASE_USERNAME: submito
+      DATABASE_PASSWORD: submito
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      SECURITY_USER_NAME: ${SECURITY_USER_NAME:-admin}
+      SECURITY_USER_PASSWORD: ${SECURITY_USER_PASSWORD:-change-me}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   submito_pgdata:
   submito_redisdata:
